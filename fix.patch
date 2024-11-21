@@ -1,0 +1,822 @@
+Only in mk-livestatus-1.5.0p25_nagios-4.5.x/: Makefile
+Only in mk-livestatus-1.5.0p25_nagios-4.5.x/: config.h
+Only in mk-livestatus-1.5.0p25_nagios-4.5.x/: config.log
+Only in mk-livestatus-1.5.0p25_nagios-4.5.x/: config.status
+diff -crB mk-livestatus-1.5.0p25/nagios4/cgiutils.h mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/cgiutils.h
+*** mk-livestatus-1.5.0p25/nagios4/cgiutils.h   2020-08-19 02:06:37.000000000 +0200
+--- mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/cgiutils.h      2024-11-21 07:56:10.795418010 +0100
+***************
+*** 18,29 ****
+   * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   ************************************************************************/
+
+! #ifndef _CGIUTILS_H
+! #define _CGIUTILS_H
+  #include "lib/libnagios.h"
+  #include "logging.h"
+  #include "objects.h"
+  #include "cgiauth.h"
+
+  NAGIOS_BEGIN_DECL
+
+--- 18,30 ----
+   * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   ************************************************************************/
+
+! #ifndef NAGIOS_CGIUTILS_H_INCLUDED
+! #define NAGIOS_CGIUTILS_H_INCLUDED
+  #include "lib/libnagios.h"
+  #include "logging.h"
+  #include "objects.h"
+  #include "cgiauth.h"
++ #include "locations.h"
+
+  NAGIOS_BEGIN_DECL
+
+***************
+*** 57,83 ****
+
+        /**************************** STYLE SHEET NAMES ******************************/
+
+! #define COMMON_CSS            "common.css"
+
+! #define SHOWLOG_CSS           "showlog.css"
+! #define STATUS_CSS            "status.css"
+! #define STATUSMAP_CSS         "statusmap.css"
+! #define COMMAND_CSS           "cmd.css"
+! #define EXTINFO_CSS           "extinfo.css"
+! #define NOTIFICATIONS_CSS     "notifications.css"
+! #define HISTORY_CSS           "history.css"
+! #define CONFIG_CSS            "config.css"
+! #define OUTAGES_CSS           "outages.css"
+! #define TRENDS_CSS            "trends.css"
+! #define AVAIL_CSS             "avail.css"
+! #define TAC_CSS                       "tac.css"
+! #define HISTOGRAM_CSS         "histogram.css"
+! #define CHECKSANITY_CSS               "checksanity.css"
+! #define MINISTATUS_CSS          "ministatus.css"
+! #define SUMMARY_CSS             "summary.css"
+
+        /********************************* JAVASCRIPT INCLUDES **********************/
+! #define JQUERY_JS             "jquery-1.7.1.min.js"
+
+        /********************************* ICONS ************************************/
+
+--- 58,86 ----
+
+        /**************************** STYLE SHEET NAMES ******************************/
+
+! #define COMMON_CSS         "common.css"
+
+! #define SHOWLOG_CSS        "showlog.css"
+! #define STATUS_CSS         "status.css"
+! #define STATUSMAP_CSS      "statusmap.css"
+! #define COMMAND_CSS        "cmd.css"
+! #define EXTINFO_CSS        "extinfo.css"
+! #define NOTIFICATIONS_CSS  "notifications.css"
+! #define HISTORY_CSS        "history.css"
+! #define CONFIG_CSS         "config.css"
+! #define OUTAGES_CSS        "outages.css"
+! #define TRENDS_CSS         "trends.css"
+! #define AVAIL_CSS          "avail.css"
+! #define TAC_CSS            "tac.css"
+! #define HISTOGRAM_CSS      "histogram.css"
+! #define CHECKSANITY_CSS    "checksanity.css"
+! #define MINISTATUS_CSS     "ministatus.css"
+! #define SUMMARY_CSS        "summary.css"
+! #define NAGFUNCS_CSS       "nag_funcs.css"
+
+        /********************************* JAVASCRIPT INCLUDES **********************/
+! #define JQUERY_JS          "jquery-3.7.1.min.js"
+! #define NAGFUNCS_JS        "nag_funcs.js"
+
+        /********************************* ICONS ************************************/
+
+***************
+*** 222,227 ****
+--- 225,232 ----
+  #define NOTIFICATION_HOST_FLAP                4096
+  #define NOTIFICATION_SERVICE_CUSTOM     8192
+  #define NOTIFICATION_HOST_CUSTOM        16384
++ #define NOTIFICATION_SERVICE_DOWNTIME   32768
++ #define NOTIFICATION_HOST_DOWNTIME      65536
+
+
+        /********************** HOST AND SERVICE ALERT TYPES **********************/
+***************
+*** 420,427 ****
+--- 425,441 ----
+        struct lifo_struct *next;
+        } lifo;
+
++ struct nagios_extcmd {
++       const char *name;
++       int id;
++       int cmt_opt;   /* 0 = not allowed, 1 = optional, 2 = required */
++       char *default_comment;
++       };
++
+  /******************************** FUNCTIONS *******************************/
+
++ typedef void (*read_config_callback)(const char*, const char*);
++
+  void reset_cgi_vars(void);
+  void cgi_init(void (*doc_header)(int), void (*doc_footer)(void), int object_options, int status_options);
+  void free_memory(void);
+***************
+*** 429,435 ****
+  const char *get_cgi_config_location(void);                            /* gets location of the CGI config file to read */
+  const char *get_cmd_file_location(void);                              /* gets location of external command file to write to */
+
+! int read_cgi_config_file(const char *);
+  int read_main_config_file(const char *);
+  int read_all_object_configuration_data(const char *, int);
+  int read_all_status_data(const char *, int);
+--- 443,449 ----
+  const char *get_cgi_config_location(void);                            /* gets location of the CGI config file to read */
+  const char *get_cmd_file_location(void);                              /* gets location of external command file to write to */
+
+! int read_cgi_config_file(const char *, read_config_callback);
+  int read_main_config_file(const char *);
+  int read_all_object_configuration_data(const char *, int);
+  int read_all_status_data(const char *, int);
+***************
+*** 475,479 ****
+--- 489,499 ----
+  int push_lifo(char *);
+  char *pop_lifo(void);
+
++ struct nagios_extcmd* extcmd_get_command_id(int);
++ struct nagios_extcmd* extcmd_get_command_name(const char *);
++ const char *extcmd_get_name(int);
++
++ void build_subdir_path(char* path, size_t size, const char* prefix, const char* subdir);
++
+  NAGIOS_END_DECL
+  #endif
+diff -crB mk-livestatus-1.5.0p25/nagios4/common.h mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/common.h
+*** mk-livestatus-1.5.0p25/nagios4/common.h     2020-08-19 02:06:37.000000000 +0200
+--- mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/common.h        2024-11-21 07:56:10.795418010 +0100
+***************
+*** 19,31 ****
+   * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   ************************************************************************/
+
+! #ifndef INCLUDE_COMMON_H
+! #define INCLUDE_COMMON_H
+
+  #include "shared.h"
+
+! #define PROGRAM_VERSION "4.0.2"
+! #define PROGRAM_MODIFICATION_DATE "11-25-2013"
+
+  NAGIOS_BEGIN_DECL
+
+--- 19,31 ----
+   * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   ************************************************************************/
+
+! #ifndef NAGIOS_COMMON_H_INCLUDED
+! #define NAGIOS_COMMON_H_INCLUDED
+
+  #include "shared.h"
+
+! #define PROGRAM_VERSION "4.5.6"
+! #define PROGRAM_MODIFICATION_DATE "2024-10-08"
+
+  NAGIOS_BEGIN_DECL
+
+***************
+*** 66,71 ****
+--- 66,72 ----
+  extern int enable_timing_point;
+
+  extern char *config_file_dir;
++ extern char *website_url;
+
+  #ifdef HAVE_TZNAME
+  #ifdef CYGWIN
+***************
+*** 346,351 ****
+--- 347,358 ----
+  #define CMD_DEL_DOWNTIME_BY_HOSTGROUP_NAME              171
+  #define CMD_DEL_DOWNTIME_BY_START_TIME_COMMENT          172
+
++ /* new commands in Nagios 4.x found below... */
++ #define CMD_CLEAR_HOST_FLAPPING_STATE                   173
++ #define CMD_CLEAR_SVC_FLAPPING_STATE                    174
++ #define CMD_CHANGE_HOST_EVENT_HANDLER_TIMEPERIOD        175
++ #define CMD_CHANGE_SVC_EVENT_HANDLER_TIMEPERIOD         176
++
+  /* custom command introduced in Nagios 3.x */
+  #define CMD_CUSTOM_COMMAND                              999
+
+***************
+*** 528,531 ****
+  #define MODATTR_CHECK_TIMEPERIOD                16384
+  #define MODATTR_CUSTOM_VARIABLE                 32768
+  #define MODATTR_NOTIFICATION_TIMEPERIOD         65536
+! #endif /* INCLUDE_COMMON_H */
+--- 535,539 ----
+  #define MODATTR_CHECK_TIMEPERIOD                16384
+  #define MODATTR_CUSTOM_VARIABLE                 32768
+  #define MODATTR_NOTIFICATION_TIMEPERIOD         65536
+! #define MODATTR_EVENT_HANDLER_TIMEPERIOD        131072
+! #endif /* NAGIOS_COMMON_H_INCLUDED */
+diff -crB mk-livestatus-1.5.0p25/nagios4/downtime.h mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/downtime.h
+*** mk-livestatus-1.5.0p25/nagios4/downtime.h   2020-08-19 02:06:37.000000000 +0200
+--- mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/downtime.h      2024-11-21 07:56:10.795418010 +0100
+***************
+*** 21,28 ****
+   *****************************************************************************/
+
+
+! #ifndef _DOWNTIME_H
+! #define _DOWNTIME_H
+
+  #include "common.h"
+  #include "objects.h"
+--- 21,28 ----
+   *****************************************************************************/
+
+
+! #ifndef NAGIOS_DOWNTIME_H_INCLUDED
+! #define NAGIOS_DOWNTIME_H_INCLUDED
+
+  #include "common.h"
+  #include "objects.h"
+***************
+*** 49,56 ****
+        int     start_notification_sent;
+        char *author;
+        char *comment;
+- #ifndef NSCGI
+        unsigned long comment_id;
+        int start_flex_downtime;
+        int incremented_pending_downtime;
+  #endif
+--- 49,56 ----
+        int     start_notification_sent;
+        char *author;
+        char *comment;
+        unsigned long comment_id;
++ #ifndef NSCGI
+        int start_flex_downtime;
+        int incremented_pending_downtime;
+  #endif
+***************
+*** 85,90 ****
+--- 85,92 ----
+
+  int check_pending_flex_host_downtime(struct host *);
+  int check_pending_flex_service_downtime(struct service *);
++ int is_host_in_pending_flex_downtime(struct host *);
++ int is_service_in_pending_flex_downtime(struct service *);
+
+  int check_for_expired_downtime(void);
+  #endif
+diff -crB mk-livestatus-1.5.0p25/nagios4/nagios.h mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/nagios.h
+*** mk-livestatus-1.5.0p25/nagios4/nagios.h     2020-08-19 02:06:37.000000000 +0200
+--- mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/nagios.h        2024-11-21 07:56:10.795418010 +0100
+***************
+*** 17,24 ****
+   * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   ************************************************************************/
+
+! #ifndef _NAGIOS_H
+! #define _NAGIOS_H
+
+  #ifndef NSCORE
+  # define NSCORE
+--- 17,24 ----
+   * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   ************************************************************************/
+
+! #ifndef NAGIOS_NAGIOS_H_INCLUDED
+! #define NAGIOS_NAGIOS_H_INCLUDED
+
+  #ifndef NSCORE
+  # define NSCORE
+***************
+*** 30,36 ****
+  #include "locations.h"
+  #include "objects.h"
+  #include "macros.h"
+- #include "config.h"
+
+  /*
+   * global variables only used in the core. Reducing this list would be
+--- 30,35 ----
+***************
+*** 120,125 ****
+--- 119,127 ----
+  extern int auto_rescheduling_interval;
+  extern int auto_rescheduling_window;
+
++ extern int enable_soft_host_recovery;
++ extern int enable_soft_service_recovery;
++
+  extern int check_orphaned_services;
+  extern int check_orphaned_hosts;
+  extern int check_service_freshness;
+***************
+*** 188,193 ****
+--- 190,201 ----
+
+  extern int allow_empty_hostgroup_assignment;
+
++ extern int host_down_disable_service_checks;
++ extern int service_skip_check_dependency_status;
++ extern int service_skip_check_parent_status;
++ extern int service_skip_check_host_down_status;
++ extern int host_skip_check_dependency_status;
++
+  extern time_t last_program_stop;
+  extern time_t event_start;
+
+***************
+*** 423,439 ****
+  #define normal_check_window(o) ((time_t)(o->check_interval * interval_length))
+  #define retry_check_window(o) ((time_t)(o->retry_interval * interval_length))
+  #define check_window(o) \
+!       ((!o->current_state && o->state_type == SOFT_STATE) ? \
+                retry_check_window(o) : \
+                normal_check_window(o))
+
+- /** Nerd subscription type */
+- struct nerd_subscription {
+-       int sd;
+-       struct nerd_channel *chan;
+-       char *format; /* requested format (macro string) for this subscription */
+- };
+-
+  /******************** FUNCTIONS **********************/
+  extern int set_loadctl_options(char *opts, unsigned int len);
+
+--- 431,440 ----
+  #define normal_check_window(o) ((time_t)(o->check_interval * interval_length))
+  #define retry_check_window(o) ((time_t)(o->retry_interval * interval_length))
+  #define check_window(o) \
+!       ((o->current_state && o->state_type == SOFT_STATE) ? \
+                retry_check_window(o) : \
+                normal_check_window(o))
+
+  /******************** FUNCTIONS **********************/
+  extern int set_loadctl_options(char *opts, unsigned int len);
+
+***************
+*** 444,449 ****
+--- 445,459 ----
+  extern const char *check_type_name(int check_type);
+  extern const char *check_result_source(check_result *cr);
+
++ #ifdef ENABLE_NERD
++
++ /** Nerd subscription type */
++ struct nerd_subscription {
++       int sd;
++       struct nerd_channel *chan;
++       char *format; /* requested format (macro string) for this subscription */
++ };
++
+  /*** Nagios Event Radio Dispatcher functions ***/
+  extern int nerd_init(void);
+  extern int nerd_mkchan(const char *name, const char *description, int (*handler)(int, void *), unsigned int callbacks);
+***************
+*** 452,457 ****
+--- 462,469 ----
+  extern objectlist *nerd_get_subscriptions(int chan_id);
+  extern int nerd_broadcast(unsigned int chan_id, void *buf, unsigned int len);
+
++ #endif
++
+  /*** Query Handler functions, types and macros*/
+  typedef int (*qh_handler)(int, char *, unsigned int);
+  extern int dump_event_stats(int sd);
+***************
+*** 484,489 ****
+--- 496,502 ----
+  int daemon_init(void);                                                /* switches to daemon mode */
+  int drop_privileges(char *, char *);                          /* drops privileges before startup */
+  void display_scheduling_info(void);                           /* displays service check scheduling information */
++ void init_main_cfg_vars(int); /* Initialize the non-shared main configuration variables */
+
+
+  /**** Event Queue Functions ****/
+***************
+*** 500,509 ****
+
+
+  /**** IPC Functions ****/
+! int process_check_result_queue(char *);
+! int process_check_result_file(char *);
+  int process_check_result(check_result *);
+! int delete_check_result_file(char *);
+  int init_check_result(check_result *);
+  int free_check_result(check_result *);                        /* frees memory associated with a host/service check result */
+  int parse_check_output(char *, char **, char **, char **, int, int);
+--- 513,522 ----
+
+
+  /**** IPC Functions ****/
+! int process_check_result_queue(const char *);
+! int process_check_result_file(const char *);
+  int process_check_result(check_result *);
+! int delete_check_result_file(const char *);
+  int init_check_result(check_result *);
+  int free_check_result(check_result *);                        /* frees memory associated with a host/service check result */
+  int parse_check_output(char *, char **, char **, char **, int, int);
+***************
+*** 512,517 ****
+--- 525,531 ----
+
+
+  /**** Monitoring/Event Handler Functions ****/
++ int check_service_parents(service *svc);                      /* checks service parents */
+  int check_service_dependencies(service *, int);               /* checks service dependencies */
+  int check_host_dependencies(host *, int);                     /* checks host dependencies */
+  void check_for_orphaned_services(void);                               /* checks for orphaned services */
+***************
+*** 528,536 ****
+  void check_for_service_flapping(service *, int, int);       /* determines whether or not a service is "flapping" between states */
+  void check_for_host_flapping(host *, int, int, int);          /* determines whether or not a host is "flapping" between states */
+  void set_service_flap(service *, double, double, double, int);        /* handles a service that is flapping */
+! void clear_service_flap(service *, double, double, double);   /* handles a service that has stopped flapping */
+  void set_host_flap(host *, double, double, double, int);              /* handles a host that is flapping */
+! void clear_host_flap(host *, double, double, double);         /* handles a host that has stopped flapping */
+  void enable_flap_detection_routines(void);                    /* enables flap detection on a program-wide basis */
+  void disable_flap_detection_routines(void);                   /* disables flap detection on a program-wide basis */
+  void enable_host_flap_detection(host *);                      /* enables flap detection for a particular host */
+--- 542,550 ----
+  void check_for_service_flapping(service *, int, int);       /* determines whether or not a service is "flapping" between states */
+  void check_for_host_flapping(host *, int, int, int);          /* determines whether or not a host is "flapping" between states */
+  void set_service_flap(service *, double, double, double, int);        /* handles a service that is flapping */
+! void clear_service_flap(service *, double, double, double, int);      /* handles a service that has stopped flapping */
+  void set_host_flap(host *, double, double, double, int);              /* handles a host that is flapping */
+! void clear_host_flap(host *, double, double, double, int);            /* handles a host that has stopped flapping */
+  void enable_flap_detection_routines(void);                    /* enables flap detection on a program-wide basis */
+  void disable_flap_detection_routines(void);                   /* disables flap detection on a program-wide basis */
+  void enable_host_flap_detection(host *);                      /* enables flap detection for a particular host */
+***************
+*** 545,551 ****
+  int check_host_check_viability(host *, int, int *, time_t *);
+  int adjust_host_check_attempt(host *, int);
+  int determine_host_reachability(host *);
+- int process_host_check_result(host *, int, char *, int, int, int, unsigned long);
+  int perform_on_demand_host_check(host *, int *, int, int, unsigned long);
+  int execute_sync_host_check(host *);
+  int run_scheduled_host_check(host *, int, double);
+--- 559,564 ----
+***************
+*** 564,570 ****
+  int handle_host_state(host *);                                /* top level host state handler */
+
+
+! /**** Common Check Fucntions *****/
+  int reap_check_results(void);
+
+
+--- 577,583 ----
+  int handle_host_state(host *);                                /* top level host state handler */
+
+
+! /**** Common Check Functions *****/
+  int reap_check_results(void);
+
+
+***************
+*** 580,588 ****
+--- 593,603 ----
+  int handle_service_event(service *);                          /* top level service event logic */
+  int run_service_event_handler(nagios_macros *mac, service *);                 /* runs the event handler for a specific service */
+  int run_global_service_event_handler(nagios_macros *mac, service *);          /* runs the global service event handler */
++ int check_service_event_handler_viability(int, service *);            /* checks if service event handler can be run */
+  int handle_host_event(host *);                                        /* top level host event logic */
+  int run_host_event_handler(nagios_macros *mac, host *);                               /* runs the event handler for a specific host */
+  int run_global_host_event_handler(nagios_macros *mac, host *);                        /* runs the global host event handler */
++ int check_host_event_handler_viability(int, host *);                  /* checks if host event handler can be run */
+
+
+  /**** Notification Functions ****/
+***************
+*** 620,625 ****
+--- 635,657 ----
+  char *get_next_string_from_buf(char *buf, int *start_index, int bufsize);
+  int compare_strings(char *, char *);                    /* compares two strings for equality */
+  char *escape_newlines(char *);
++ #ifdef DETECT_RLIMIT_PROBLEM
++ void rlimit_problem_detection(int);
++ #endif
++ /**
++  * Unescapes newlines and backslashes in a check result output string read from
++  * a source that uses newlines as a delimiter (e.g., files in the checkresults
++  * spool dir, or the command pipe).
++  * @note: There is an unescape_newlines() in cgi/cgiutils.c that unescapes more
++  * than '\\' and '\n' in place. Since this function is specifically intended
++  * for processing escaped plugin output, we'll use a more specific name to
++  * avoid confusion and conflicts.
++  * @param rawbuf Input string tp unescape.
++  * @return An unescaped copy of rawbuf in a newly allocated string, or NULL if
++  * rawbuf is NULL or no memory could be allocated for the new string.
++  */
++ char *unescape_check_result_output(const char *rawbuf);
++
+  int contains_illegal_object_chars(char *);            /* tests whether or not an object name (host, service, etc.) contains illegal characters */
+  int my_rename(char *, char *);                          /* renames a file - works across filesystems */
+  int my_fcopy(char *, char *);                           /* copies a file - works across filesystems */
+***************
+*** 639,644 ****
+--- 671,677 ----
+  time_t calculate_time_from_weekday_of_month(int, int, int, int);      /* calculates midnight time of specific (3rd, last, etc.) weekday of a particular month */
+  time_t calculate_time_from_day_of_month(int, int, int);       /* calculates midnight time of specific (1st, last, etc.) day of a particular month */
+  void get_next_valid_time(time_t, time_t *, timeperiod *);     /* get the next valid time in a time period */
++ time_t reschedule_within_timeperiod(time_t, timeperiod*, time_t);
+  time_t get_next_log_rotation_time(void);              /* determine the next time to schedule a log rotation */
+  int dbuf_init(dbuf *, int);
+  int dbuf_free(dbuf *);
+***************
+*** 744,749 ****
+--- 777,784 ----
+  void disable_contact_host_notifications(contact *);     /* disables host notifications for a specific contact */
+  void enable_contact_service_notifications(contact *);   /* enables service notifications for a specific contact */
+  void disable_contact_service_notifications(contact *);  /* disables service notifications for a specific contact */
++ void clear_host_flapping_state(host *);                                       /* clears the flapping state for a specific host */
++ void clear_service_flapping_state(service *);                 /* clears the flapping state for a specific service */
+
+  int launch_command_file_worker(void);
+  int shutdown_command_file_worker(void);
+diff -crB mk-livestatus-1.5.0p25/nagios4/objects.h mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/objects.h
+*** mk-livestatus-1.5.0p25/nagios4/objects.h    2020-08-19 02:06:37.000000000 +0200
+--- mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/objects.h       2024-11-21 07:56:10.795418010 +0100
+***************
+*** 21,28 ****
+   *****************************************************************************/
+
+
+! #ifndef _OBJECTS_H
+! #define _OBJECTS_H
+
+  #include "common.h"
+
+--- 21,28 ----
+   *****************************************************************************/
+
+
+! #ifndef NAGIOS_OBJECTS_H_INCLUDED
+! #define NAGIOS_OBJECTS_H_INCLUDED
+
+  #include "common.h"
+
+***************
+*** 31,37 ****
+
+  /*************** CURRENT OBJECT REVISION **************/
+
+! #define CURRENT_OBJECT_STRUCTURE_VERSION        402     /* increment when changes are made to data structures... */
+  /* Nagios 3 starts at 300, Nagios 4 at 400, etc. */
+
+
+--- 31,37 ----
+
+  /*************** CURRENT OBJECT REVISION **************/
+
+! #define CURRENT_OBJECT_STRUCTURE_VERSION        403     /* increment when changes are made to data structures... */
+  /* Nagios 3 starts at 300, Nagios 4 at 400, etc. */
+
+
+***************
+*** 87,92 ****
+--- 87,93 ----
+  #define OPT_UNKNOWN       (1 << STATE_UNKNOWN)
+  #define OPT_RECOVERY      OPT_OK
+  /* and now the "unreal" states... */
++ #define OPT_NOTIFICATIONS (1 << 9)
+  #define OPT_PENDING       (1 << 10)
+  #define OPT_FLAPPING      (1 << 11)
+  #define OPT_DOWNTIME      (1 << 12)
+***************
+*** 98,108 ****
+--- 99,114 ----
+  #define flag_isset(c, flag)  (flag_get((c), (flag)) == (unsigned int)(flag))
+  #define flag_unset(c, flag)  (c &= ~(flag))
+  #define should_stalk(o) flag_isset(o->stalking_options, 1 << o->current_state)
++ #define should_stalk_notifications(o) flag_isset(o->stalking_options, OPT_NOTIFICATIONS)
+  #define should_flap_detect(o) flag_isset(o->flap_detection_options, 1 << o->current_state)
+  #define should_notify(o) flag_isset(o->notification_options, 1 << o->current_state)
+  #define add_notified_on(o, f) (o->notified_on |= (1 << f))
+
+
++ /* Event-related macros */
++ #define NUDGE_MIN     5
++ #define NUDGE_MAX     17
++
+  /****************** DATA STRUCTURES *******************/
+
+  /* @todo Remove typedef's of non-opaque types in Nagios 5 */
+***************
+*** 144,150 ****
+   */
+  struct check_engine {
+        char *name;         /* "Nagios Core", "Merlin", "Mod Gearman" fe */
+!       const char *(*source_name)(void *);
+        void (*clean_result)(void *);
+  };
+
+--- 150,156 ----
+   */
+  struct check_engine {
+        char *name;         /* "Nagios Core", "Merlin", "Mod Gearman" fe */
+!       const char *(*source_name)( const void *);
+        void (*clean_result)(void *);
+  };
+
+***************
+*** 157,163 ****
+        int check_options;
+        int scheduled_check;                            /* was this a scheduled or an on-demand check? */
+        int reschedule_check;                           /* should we reschedule the next check */
+!       char *output_file;                              /* what file is the output stored in? */
+        FILE *output_file_fp;
+        double latency;
+        struct timeval start_time;                      /* time the service check was initiated */
+--- 163,169 ----
+        int check_options;
+        int scheduled_check;                            /* was this a scheduled or an on-demand check? */
+        int reschedule_check;                           /* should we reschedule the next check */
+!       const char *output_file;                        /* what file is the output stored in? */
+        FILE *output_file_fp;
+        double latency;
+        struct timeval start_time;                      /* time the service check was initiated */
+***************
+*** 166,174 ****
+        int exited_ok;                                  /* did the plugin check return okay? */
+        int return_code;                                /* plugin return code */
+        char *output;                                   /* plugin output */
+!       struct rusage rusage;                   /* resource usage by this check */
+!       struct check_engine *engine;    /* where did we get this check from? */
+!       void *source;                                   /* engine handles this */
+        } check_result;
+
+
+--- 172,181 ----
+        int exited_ok;                                  /* did the plugin check return okay? */
+        int return_code;                                /* plugin return code */
+        char *output;                                   /* plugin output */
+!       /* 5DEPR: rusage is deprecated in Nagios, will be removed in 5.0.0 */
+!       struct rusage rusage;                           /* resource usage by this check */
+!       struct check_engine *engine;                    /* where did we get this check from? */
+!       const void *source;                             /* engine handles this */
+        } check_result;
+
+
+***************
+*** 409,414 ****
+--- 416,422 ----
+        double  retry_interval;
+        int     max_attempts;
+        char    *event_handler;
++       char    *event_handler_period;
+        struct contactgroupsmember *contact_groups;
+        struct contactsmember *contacts;
+        double  notification_interval;
+***************
+*** 509,514 ****
+--- 517,523 ----
+
+        struct command *event_handler_ptr;
+        struct command *check_command_ptr;
++       struct timeperiod *event_handler_period_ptr;
+        struct timeperiod *check_period_ptr;
+        struct timeperiod *notification_period_ptr;
+        struct objectlist *hostgroups_ptr;
+***************
+*** 543,548 ****
+--- 552,558 ----
+        struct servicesmember *children;
+        char    *check_command;
+        char    *event_handler;
++       char    *event_handler_period;
+        int     initial_state;
+        double  check_interval;
+        double  retry_interval;
+***************
+*** 635,640 ****
+--- 645,651 ----
+        char *check_command_args;
+        struct timeperiod *check_period_ptr;
+        struct timeperiod *notification_period_ptr;
++       struct timeperiod *event_handler_period_ptr;
+        struct objectlist *servicegroups_ptr;
+        struct objectlist *exec_deps, *notify_deps;
+        struct objectlist *escalation_list;
+***************
+*** 742,751 ****
+  struct commandsmember *add_service_notification_command_to_contact(contact *, char *);                                /* adds a service notification command to a contact definition */
+  struct commandsmember *add_host_notification_command_to_contact(contact *, char *);                           /* adds a host notification command to a contact definition */
+  struct customvariablesmember *add_custom_variable_to_contact(contact *, char *, char *);                       /* adds a custom variable to a service definition */
+! struct host *add_host(char *name, char *display_name, char *alias, char *address, char *check_period, int initial_state, double check_interval, double retry_interval, int max_attempts, int notification_options, double notification_interval, double first_notification_delay, char *notification_period, int notifications_enabled, char *check_command, int checks_enabled, int accept_passive_checks, char *event_handler, int event_handler_enabled, int flap_detection_enabled, double low_flap_threshold, double high_flap_threshold, int flap_detection_options, int stalking_options, int process_perfdata, int check_freshness, int freshness_threshold, char *notes, char *notes_url, char *action_url, char *icon_image, char *icon_image_alt, char *vrml_image, char *statusmap_image, int x_2d, int y_2d, int have_2d_coords, double x_3d, double y_3d, double z_3d, int have_3d_coords, int should_be_drawn, int retain_status_information, int retain_nonstatus_information, int obsess_over_host, unsigned int hourly_value);
+  struct hostsmember *add_parent_host_to_host(host *, char *);                                                  /* adds a parent host to a host definition */
+  struct servicesmember *add_parent_service_to_service(service *, char *host_name, char *description);
+  struct hostsmember *add_child_link_to_host(host *, host *);                                                  /* adds a child host to a host definition */
+  struct contactgroupsmember *add_contactgroup_to_host(host *, char *);                                        /* adds a contactgroup to a host definition */
+  struct contactsmember *add_contact_to_host(host *, char *);                                                    /* adds a contact to a host definition */
+  struct customvariablesmember *add_custom_variable_to_host(host *, char *, char *);                             /* adds a custom variable to a host definition */
+--- 753,763 ----
+  struct commandsmember *add_service_notification_command_to_contact(contact *, char *);                                /* adds a service notification command to a contact definition */
+  struct commandsmember *add_host_notification_command_to_contact(contact *, char *);                           /* adds a host notification command to a contact definition */
+  struct customvariablesmember *add_custom_variable_to_contact(contact *, char *, char *);                       /* adds a custom variable to a service definition */
+! struct host *add_host(char *name, char *display_name, char *alias, char *address, char *check_period, int initial_state, double check_interval, double retry_interval, int max_attempts, int notification_options, double notification_interval, double first_notification_delay, char *notification_period, int notifications_enabled, char *check_command, int checks_enabled, int accept_passive_checks, char *event_handler, int event_handler_enabled, char *event_handler_period, int flap_detection_enabled, double low_flap_threshold, double high_flap_threshold, int flap_detection_options, int stalking_options, int process_perfdata, int check_freshness, int freshness_threshold, char *notes, char *notes_url, char *action_url, char *icon_image, char *icon_image_alt, char *vrml_image, char *statusmap_image, int x_2d, int y_2d, int have_2d_coords, double x_3d, double y_3d, double z_3d, int have_3d_coords, int should_be_drawn, int retain_status_information, int retain_nonstatus_information, int obsess_over_host, unsigned int hourly_value);
+  struct hostsmember *add_parent_host_to_host(host *, char *);                                                  /* adds a parent host to a host definition */
+  struct servicesmember *add_parent_service_to_service(service *, char *host_name, char *description);
+  struct hostsmember *add_child_link_to_host(host *, host *);                                                  /* adds a child host to a host definition */
++ struct servicesmember *add_child_link_to_service(service *, service *);                                                      /* adds a child host to a host definition */
+  struct contactgroupsmember *add_contactgroup_to_host(host *, char *);                                        /* adds a contactgroup to a host definition */
+  struct contactsmember *add_contact_to_host(host *, char *);                                                    /* adds a contact to a host definition */
+  struct customvariablesmember *add_custom_variable_to_host(host *, char *, char *);                             /* adds a custom variable to a host definition */
+***************
+*** 761,767 ****
+  struct contactgroup *add_contactgroup(char *, char *);                                                                /* adds a contactgroup definition */
+  struct contactsmember *add_contact_to_contactgroup(contactgroup *, char *);                                   /* adds a contact to a contact group definition */
+  struct command *add_command(char *, char *);                                                                  /* adds a command definition */
+! struct service *add_service(char *host_name, char *description, char *display_name, char *check_period, int initial_state, int max_attempts, int parallelize, int accept_passive_checks, double check_interval, double retry_interval, double notification_interval, double first_notification_delay, char *notification_period, int notification_options, int notifications_enabled, int is_volatile, char *event_handler, int event_handler_enabled, char *check_command, int checks_enabled, int flap_detection_enabled, double low_flap_threshold, double high_flap_threshold, int flap_detection_options, int stalking_options, int process_perfdata, int check_freshness, int freshness_threshold, char *notes, char *notes_url, char *action_url, char *icon_image, char *icon_image_alt, int retain_status_information, int retain_nonstatus_information, int obsess_over_service, unsigned int hourly_value);
+  struct contactgroupsmember *add_contactgroup_to_service(service *, char *);                                   /* adds a contact group to a service definition */
+  struct contactsmember *add_contact_to_service(service *, char *);                                              /* adds a contact to a host definition */
+  struct serviceescalation *add_serviceescalation(char *host_name, char *description, int first_notification, int last_notification, double notification_interval, char *escalation_period, int escalation_options);
+--- 773,779 ----
+  struct contactgroup *add_contactgroup(char *, char *);                                                                /* adds a contactgroup definition */
+  struct contactsmember *add_contact_to_contactgroup(contactgroup *, char *);                                   /* adds a contact to a contact group definition */
+  struct command *add_command(char *, char *);                                                                  /* adds a command definition */
+! struct service *add_service(char *host_name, char *description, char *display_name, char *check_period, int initial_state, int max_attempts, int parallelize, int accept_passive_checks, double check_interval, double retry_interval, double notification_interval, double first_notification_delay, char *notification_period, int notification_options, int notifications_enabled, int is_volatile, char *event_handler, int event_handler_enabled, char *event_handler_period, char *check_command, int checks_enabled, int flap_detection_enabled, double low_flap_threshold, double high_flap_threshold, int flap_detection_options, int stalking_options, int process_perfdata, int check_freshness, int freshness_threshold, char *notes, char *notes_url, char *action_url, char *icon_image, char *icon_image_alt, int retain_status_information, int retain_nonstatus_information, int obsess_over_service, unsigned int hourly_value);
+  struct contactgroupsmember *add_contactgroup_to_service(service *, char *);                                   /* adds a contact group to a service definition */
+  struct contactsmember *add_contact_to_service(service *, char *);                                              /* adds a contact to a host definition */
+  struct serviceescalation *add_serviceescalation(char *host_name, char *description, int first_notification, int last_notification, double notification_interval, char *escalation_period, int escalation_options);
+***************
+*** 816,824 ****
+--- 828,852 ----
+  int is_service_member_of_servicegroup(struct servicegroup *, struct service *);       /* tests whether or not a service is a member of a specific servicegroup */
+  int is_contact_member_of_contactgroup(struct contactgroup *, struct contact *);       /* tests whether or not a contact is a member of a specific contact group */
+  int is_contact_for_host(struct host *, struct contact *);                            /* tests whether or not a contact is a contact member for a specific host */
++ int is_contactgroup_for_host(struct host *, struct contactgroup *);
++       /* tests whether a contact group is a contract group for a specific host */
+  int is_escalated_contact_for_host(struct host *, struct contact *);                   /* checks whether or not a contact is an escalated contact for a specific host */
++ int is_contact_for_host_escalation(hostescalation *, contact *);
++       /* tests whether a contact is an contact for a particular host escalation */
++ int is_contactgroup_for_host_escalation(hostescalation *, contactgroup *);
++       /*  tests whether a contactgroup is a contactgroup for a particular
++       host escalation */
+  int is_contact_for_service(struct service *, struct contact *);                      /* tests whether or not a contact is a contact member for a specific service */
++ int is_contactgroup_for_service(struct service *, struct contactgroup *);
++       /* tests whether a contact group is a contract group for a specific service */
++ int is_escalated_contact_for_host(struct host *, struct contact *);                   /* checks whether or not a contact is an escalated contact for a specific host */
+  int is_escalated_contact_for_service(struct service *, struct contact *);             /* checks whether or not a contact is an escalated contact for a specific service */
++ int is_contact_for_service_escalation(serviceescalation *, contact *);
++       /* tests whether a contact is an contact for a particular service
++               escalation */
++ int is_contactgroup_for_service_escalation(serviceescalation *, contactgroup *);
++ /*  tests whether a contactgroup is a contactgroup for a particular
++       service escalation */
+
+  int number_of_immediate_child_hosts(struct host *);                           /* counts the number of immediate child hosts for a particular host */
+  int number_of_total_child_hosts(struct host *);                               /* counts the number of total child hosts for a particular host */
+diff -crB mk-livestatus-1.5.0p25/nagios4/shared.h mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/shared.h
+*** mk-livestatus-1.5.0p25/nagios4/shared.h     2020-08-19 02:06:37.000000000 +0200
+--- mk-livestatus-1.5.0p25_nagios-4.5.x/nagios4/shared.h        2024-11-21 07:57:42.481452680 +0100
+***************
+*** 1,5 ****
+! #ifndef INCLUDE__shared_h__
+! #define INCLUDE__shared_h__
+
+  #include <time.h>
+  #include "libnagios.h"
+--- 1,5 ----
+! #ifndef NAGIOS_SHARED_H_INCLUDED
+! #define NAGIOS_SHARED_H_INCLUDED
+
+  #include <time.h>
+  #include "libnagios.h"
+***************
+*** 35,42 ****
+--- 35,44 ----
+
+  extern struct object_count num_objects;
+
++ extern void init_shared_cfg_vars(int);
+  extern void timing_point(const char *fmt, ...); /* print a message and the time since the first message */
+  extern char *my_strtok(char *buffer, const char *tokens);
++ extern char *my_strtok_with_free(char *buffer, const char *tokens, int free_orig);
+  extern char *my_strsep(char **stringp, const char *delim);
+  extern mmapfile *mmap_fopen(const char *filename);
+  extern int mmap_fclose(mmapfile *temp_mmapfile);
+***************
+*** 51,55 ****
+--- 53,59 ----
+  extern void get_time_breakdown(unsigned long raw_time, int *days, int *hours,
+                                 int *minutes, int *seconds);
+
++ extern void ensure_path_separator(char *path, size_t size);
++
+  NAGIOS_END_DECL
+  #endif
+Only in mk-livestatus-1.5.0p25_nagios-4.5.x/src: .deps
+Only in mk-livestatus-1.5.0p25_nagios-4.5.x/src: Makefile
+Only in mk-livestatus-1.5.0p25_nagios-4.5.x/: stamp-h1
